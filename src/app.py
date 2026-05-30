@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from src.data_processing import add_features
+from src.infrastructure_monitoring import get_infrastructure_metrics
 
 
 app = FastAPI(title="Diamonds Price Prediction API", version="1.0.0")
@@ -72,3 +73,12 @@ class ModelInfoResponse(BaseModel):
 @app.get("/", response_model=RootResponse)
 def root() -> RootResponse:
     return {"message": "Diamonds price prediction API", "docs": "/docs"}
+
+
+@app.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return {
+        "status": "ok",
+        "model_loaded": False,
+        "infrastructure": get_infrastructure_metrics(),
+    }
