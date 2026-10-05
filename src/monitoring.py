@@ -9,6 +9,7 @@ import psutil
 
 
 def _numeric_profile(data: pd.DataFrame) -> dict[str, dict[str, float]]:
+    """Собрать базовые статистики (mean, std, min, max) по числовым колонкам."""
     profile: dict[str, dict[str, float]] = {}
     numeric_data = data.select_dtypes(include="number")
     for column in numeric_data.columns:
@@ -22,12 +23,14 @@ def _numeric_profile(data: pd.DataFrame) -> dict[str, dict[str, float]]:
     return profile
 
 
-def save_baseline(data: pd.DataFrame, metrics: dict[str, float], path: Path | str) -> dict[str, Any]:
+def save_baseline(
+    data: pd.DataFrame, metrics: dict[str, float], path: Path | str
+) -> dict[str, Any]:
     """Сохранить model metrics и numeric feature profile как monitoring baseline."""
     baseline = {
         "metrics": metrics,
         "numeric_profile": _numeric_profile(data),
-        "rows": int(len(data)),
+        "rows": len(data),
     }
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +51,7 @@ def detect_data_drift(
     baseline: dict[str, Any],
     relative_threshold: float = 0.25,
 ) -> dict[str, Any]:
+    """Сравнить числовые профили текущих данных с baseline по относительному сдвигу mean."""
     current_profile = _numeric_profile(current_data)
     baseline_profile = baseline.get("numeric_profile", {})
     drifted_features: dict[str, dict[str, float]] = {}
@@ -80,6 +84,7 @@ def detect_degradation(
     rmse_threshold: float = 0.15,
     r2_drop_threshold: float = 0.10,
 ) -> dict[str, Any]:
+    """Сравнить текущие метрики качества с baseline-метриками обучения."""
     base_rmse = baseline_metrics.get("rmse")
     current_rmse = current_metrics.get("rmse")
     base_r2 = baseline_metrics.get("r2")

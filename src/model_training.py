@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 import joblib
 import numpy as np
@@ -10,7 +9,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, r2_score, root_mean_squared_error
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -24,7 +23,6 @@ from src.data_processing import (
     run_data_pipeline,
 )
 from src.monitoring import save_baseline
-
 
 MODEL_DIR = PROJECT_ROOT / "models"
 MODEL_PATH = MODEL_DIR / "diamond_price_model.joblib"
@@ -66,7 +64,7 @@ def build_model(random_state: int = 42) -> Pipeline:
 
 def calculate_metrics(y_true: pd.Series | np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
     """Рассчитать regression metrics по реальным предсказаниям."""
-    rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
+    rmse = float(root_mean_squared_error(y_true, y_pred))
     mae = float(mean_absolute_error(y_true, y_pred))
     r2 = float(r2_score(y_true, y_pred))
     denominator = np.where(np.asarray(y_true) == 0, 1e-8, np.asarray(y_true))
@@ -74,7 +72,9 @@ def calculate_metrics(y_true: pd.Series | np.ndarray, y_pred: np.ndarray) -> dic
     return {"rmse": rmse, "mae": mae, "r2": r2, "mape": mape}
 
 
-def load_processed_data(processed_dir: Path | str = PROCESSED_DIR) -> tuple[pd.DataFrame, pd.DataFrame]:
+def load_processed_data(
+    processed_dir: Path | str = PROCESSED_DIR,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Загрузить processed train/test data, создав их при необходимости."""
     processed_dir = Path(processed_dir)
     train_path = processed_dir / "train.csv"
@@ -91,6 +91,7 @@ def train_model(
     metrics_path: Path | str = METRICS_PATH,
     baseline_path: Path | str = BASELINE_PATH,
 ) -> tuple[Pipeline, dict[str, float]]:
+    """Обучить model pipeline, сохранить артефакты и monitoring baseline."""
     model = build_model()
     x_train = train_df[FEATURE_COLUMNS]
     y_train = train_df[TARGET]
@@ -111,15 +112,16 @@ def train_model(
     return model, metrics
 
 
-def load_model(path: Path | str = MODEL_PATH) -> Any | None:
+def load_model(path: Path | str = MODEL_PATH) -> Pipeline | None:
     """Загрузить trained model artifact, если он существует."""
     path = Path(path)
     if not path.exists():
         return None
-    return joblib.load(path)
+    return joblib.load(path)  # type: ignore[no-any-return]
 
 
 def main() -> None:
+    """Обучить модель на processed data и вывести метрики."""
     train_df, test_df = load_processed_data()
     _, metrics = train_model(train_df, test_df)
     print(json.dumps(metrics, indent=2))

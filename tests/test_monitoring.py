@@ -1,5 +1,13 @@
+import json
+
 from src.data_processing import add_features, generate_sample_data
-from src.monitoring import detect_data_drift, detect_degradation, get_infrastructure_metrics, save_baseline
+from src.infrastructure_monitoring import main as infrastructure_main
+from src.monitoring import (
+    detect_data_drift,
+    detect_degradation,
+    get_infrastructure_metrics,
+    save_baseline,
+)
 
 
 def test_drift_detection_flags_large_mean_shift(tmp_path):
@@ -39,3 +47,11 @@ def test_infrastructure_metrics_have_expected_keys():
     metrics = get_infrastructure_metrics()
 
     assert {"cpu_percent", "ram_percent", "disk_percent"} <= set(metrics)
+
+
+def test_infrastructure_cli_prints_valid_json(capsys):
+    infrastructure_main()
+
+    output = json.loads(capsys.readouterr().out)
+
+    assert {"cpu_percent", "ram_percent", "disk_percent"} <= set(output)

@@ -2,22 +2,28 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.pipeline import Pipeline
 
 from src.data_processing import PROCESSED_DIR, PROJECT_ROOT, TARGET
-from src.model_training import FEATURE_COLUMNS, MODEL_PATH, load_processed_data, train_model
-
+from src.model_training import (
+    FEATURE_COLUMNS,
+    MODEL_PATH,
+    load_model,
+    load_processed_data,
+    train_model,
+)
 
 FIGURES_DIR = PROJECT_ROOT / "reports" / "figures"
 
 
-def _load_data_and_model() -> tuple[pd.DataFrame, pd.DataFrame, object]:
+def _load_data_and_model() -> tuple[pd.DataFrame, pd.DataFrame, Pipeline]:
+    """Загрузить processed data и модель, при необходимости обучив её."""
     train_df, test_df = load_processed_data(PROCESSED_DIR)
     if MODEL_PATH.exists():
-        model = joblib.load(MODEL_PATH)
+        model = load_model()
     else:
         model, _ = train_model(train_df, test_df)
     return train_df, test_df, model
@@ -36,7 +42,7 @@ def plot_price_distribution(data: pd.DataFrame, output_path: Path) -> None:
     plt.close()
 
 
-def plot_predicted_vs_actual(test_df: pd.DataFrame, model: object, output_path: Path) -> None:
+def plot_predicted_vs_actual(test_df: pd.DataFrame, model: Pipeline, output_path: Path) -> None:
     """Построить график сравнения фактической и предсказанной цены."""
     actual = test_df[TARGET].to_numpy()
     predicted = model.predict(test_df[FEATURE_COLUMNS])
@@ -45,7 +51,13 @@ def plot_predicted_vs_actual(test_df: pd.DataFrame, model: object, output_path: 
 
     plt.figure(figsize=(6, 6))
     plt.scatter(actual, predicted, alpha=0.75, color="#27ae60", edgecolor="white", linewidth=0.4)
-    plt.plot([min_value, max_value], [min_value, max_value], color="#eb5757", linestyle="--", label="Ideal prediction")
+    plt.plot(
+        [min_value, max_value],
+        [min_value, max_value],
+        color="#eb5757",
+        linestyle="--",
+        label="Ideal prediction",
+    )
     plt.title("Predicted vs Actual Price")
     plt.xlabel("Actual price")
     plt.ylabel("Predicted price")
@@ -56,7 +68,7 @@ def plot_predicted_vs_actual(test_df: pd.DataFrame, model: object, output_path: 
     plt.close()
 
 
-def plot_feature_importance(model: object, output_path: Path, top_n: int = 12) -> None:
+def plot_feature_importance(model: Pipeline, output_path: Path, top_n: int = 12) -> None:
     """Построить важность признаков RandomForest."""
     preprocessor = model.named_steps["preprocessor"]
     regressor = model.named_steps["model"]
@@ -64,7 +76,10 @@ def plot_feature_importance(model: object, output_path: Path, top_n: int = 12) -
     importances = regressor.feature_importances_
 
     order = np.argsort(importances)[-top_n:]
-    names = [feature_names[index].replace("numeric__", "").replace("categorical__", "") for index in order]
+    names = [
+        feature_names[index].replace("numeric__", "").replace("categorical__", "")
+        for index in order
+    ]
     values = importances[order]
 
     plt.figure(figsize=(9, 5))
@@ -79,6 +94,7 @@ def plot_feature_importance(model: object, output_path: Path, top_n: int = 12) -
 
 
 def generate_report_figures(output_dir: Path | str = FIGURES_DIR) -> list[Path]:
+    """Сгенерировать все графики для отчета и вернуть пути к файлам."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     train_df, test_df, model = _load_data_and_model()
@@ -97,6 +113,7 @@ def generate_report_figures(output_dir: Path | str = FIGURES_DIR) -> list[Path]:
 
 
 def main() -> None:
+    """Пересоздать графики отчета и вывести пути к ним."""
     for path in generate_report_figures():
         print(f"Saved figure: {path}")
 

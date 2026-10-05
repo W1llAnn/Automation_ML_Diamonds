@@ -5,7 +5,6 @@ from src.app import app
 from src.data_processing import add_features, generate_sample_data
 from src.model_training import train_model
 
-
 client = TestClient(app)
 
 
