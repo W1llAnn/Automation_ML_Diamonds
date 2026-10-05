@@ -1,39 +1,15 @@
+"""CLI-точка входа для проверки infrastructure-метрик (CPU, RAM, disk)."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+import json
 
-import psutil
-
-
-@dataclass(slots=True)
-class InfrastructureMetrics:
-    cpu_percent: float
-    ram_percent: float
-    disk_percent: float
-
-
-def get_infrastructure_metrics() -> dict[str, float]:
-    """
-    Return current host resource utilization percentages.
-
-    psutil.cpu_percent uses a short interval to avoid returning stale 0.0 values.
-    """
-    metrics = InfrastructureMetrics(
-        cpu_percent=psutil.cpu_percent(interval=0.1),
-        ram_percent=psutil.virtual_memory().percent,
-        disk_percent=psutil.disk_usage("/").percent,
-    )
-    return asdict(metrics)
+from src.monitoring import get_infrastructure_metrics
 
 
 def main() -> None:
-    metrics = get_infrastructure_metrics()
-    print(
-        "Infrastructure metrics: "
-        f"CPU={metrics['cpu_percent']:.1f}% "
-        f"RAM={metrics['ram_percent']:.1f}% "
-        f"DISK={metrics['disk_percent']:.1f}%"
-    )
+    """Напечатать текущие infrastructure-метрики в формате JSON."""
+    print(json.dumps(get_infrastructure_metrics(), indent=2))
 
 
 if __name__ == "__main__":

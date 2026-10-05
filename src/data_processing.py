@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAW_DATA_PATH = PROJECT_ROOT / "data" / "raw" / "diamonds.csv"
@@ -17,6 +16,12 @@ CATEGORICAL_FEATURES = ["cut", "color", "clarity"]
 ENGINEERED_FEATURES = ["volume", "density", "depth_to_width"]
 TARGET = "price"
 REQUIRED_COLUMNS = NUMERIC_FEATURES + CATEGORICAL_FEATURES + [TARGET]
+
+
+def _ordinal_score(values: np.ndarray, categories: np.ndarray) -> np.ndarray:
+    """Перевести категорию в её порядковый номер (1..N) внутри списка categories."""
+    ranking = {name: idx for idx, name in enumerate(categories, start=1)}
+    return pd.Series(values).map(ranking).to_numpy()
 
 
 def generate_sample_data(rows: int = 500, random_state: int = 42) -> pd.DataFrame:
@@ -37,9 +42,9 @@ def generate_sample_data(rows: int = 500, random_state: int = 42) -> pd.DataFram
     color = rng.choice(color_values, rows)
     clarity = rng.choice(clarity_values, rows)
 
-    cut_score = pd.Series(cut).map({name: idx for idx, name in enumerate(cut_values, start=1)}).to_numpy()
-    color_score = pd.Series(color).map({name: idx for idx, name in enumerate(color_values, start=1)}).to_numpy()
-    clarity_score = pd.Series(clarity).map({name: idx for idx, name in enumerate(clarity_values, start=1)}).to_numpy()
+    cut_score = _ordinal_score(cut, cut_values)
+    color_score = _ordinal_score(color, color_values)
+    clarity_score = _ordinal_score(clarity, clarity_values)
     price = (
         500
         + carat * 4200
@@ -88,7 +93,7 @@ def validate_data(data: pd.DataFrame, required_columns: Iterable[str] = REQUIRED
     if data.empty:
         raise ValueError("Dataset is empty")
 
-    for column in NUMERIC_FEATURES + [TARGET]:
+    for column in [*NUMERIC_FEATURES, TARGET]:
         if not pd.api.types.is_numeric_dtype(data[column]):
             raise ValueError(f"Column {column} must be numeric")
 
@@ -123,6 +128,7 @@ def split_and_save(
     test_size: float = 0.2,
     random_state: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Разбить данные на train/test и сохранить CSV-артефакты в output_dir."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     train_df, test_df = train_test_split(data, test_size=test_size, random_state=random_state)
@@ -132,7 +138,11 @@ def split_and_save(
     return train_df, test_df
 
 
-def run_data_pipeline(raw_path: Path | str = RAW_DATA_PATH, output_dir: Path | str = PROCESSED_DIR) -> tuple[pd.DataFrame, pd.DataFrame]:
+def run_data_pipeline(
+    raw_path: Path | str = RAW_DATA_PATH,
+    output_dir: Path | str = PROCESSED_DIR,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Выполнить полный ETL: load -> validate -> clean -> features -> split/save."""
     raw_data = load_raw_data(raw_path)
     validate_data(raw_data)
     cleaned = clean_data(raw_data)
@@ -141,6 +151,7 @@ def run_data_pipeline(raw_path: Path | str = RAW_DATA_PATH, output_dir: Path | s
 
 
 def main() -> None:
+    """Запустить ETL-pipeline и вывести размеры полученных выборок."""
     train_df, test_df = run_data_pipeline()
     print(f"Saved processed train/test data: train={len(train_df)}, test={len(test_df)}")
 
