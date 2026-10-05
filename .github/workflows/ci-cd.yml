@@ -14,14 +14,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Poetry нужен до setup-python: действие с cache: poetry вызывает его для пути кэша
+      - name: Install Poetry
+        run: pipx install poetry
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: poetry
-
-      - name: Install Poetry
-        run: pipx install poetry
 
       - name: Install dependencies
         run: poetry install
@@ -42,14 +43,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Poetry нужен до setup-python: действие с cache: poetry вызывает его для пути кэша
+      - name: Install Poetry
+        run: pipx install poetry
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: poetry
-
-      - name: Install Poetry
-        run: pipx install poetry
 
       - name: Install dependencies
         run: poetry install
