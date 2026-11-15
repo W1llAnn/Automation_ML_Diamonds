@@ -1,3 +1,5 @@
+"""Единая точка входа: полный ML pipeline от ETL до обучения модели."""
+
 from __future__ import annotations
 
 from src.data_processing import run_data_pipeline
@@ -5,6 +7,7 @@ from src.model_training import train_model
 
 
 def main() -> None:
+    """Запустить ETL и обучение, затем вывести финальные метрики."""
     train_df, test_df = run_data_pipeline()
     _, metrics = train_model(train_df, test_df)
     print("Pipeline completed")

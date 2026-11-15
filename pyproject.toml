@@ -1,0 +1,69 @@
+[project]
+name = "automation-ml-diamonds"
+version = "1.0.0"
+description = "MLOps-проект для предсказания стоимости бриллиантов: ETL, обучение модели, FastAPI и monitoring"
+authors = [{ name = "Diamonds MLOps Team" }]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+
+dependencies = [
+    "pandas>=2.3,<2.4",
+    "numpy>=2.2,<2.4",
+    "scikit-learn>=1.7,<1.9",
+    "joblib>=1.5,<1.6",
+    "fastapi>=0.115,<0.128",
+    "uvicorn[standard]>=0.34,<0.41",
+    "psutil>=7.0,<8.0",
+    "matplotlib>=3.9,<3.11",
+]
+
+[project.scripts]
+diamonds-etl = "src.data_processing:main"
+diamonds-train = "src.model_training:main"
+diamonds-figures = "src.visualization:main"
+diamonds-monitoring = "src.infrastructure_monitoring:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4,<9.0",
+    "httpx>=0.28,<0.29",
+    "ruff>=0.16,<1.0",
+    "mypy>=1.11,<3.0",
+    "pre-commit>=4.0,<5.0",
+]
+
+[tool.poetry]
+packages = [{ include = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "C4",  # flake8-comprehensions
+    "RUF", # ruff-specific rules
+]
+# RUF001-RUF003 запрещают кириллические буквы, похожие на латинские: проект документируется на русском
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "run_pipeline.py"]
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
