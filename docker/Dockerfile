@@ -4,7 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DEFAULT_TIMEOUT=120 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    POETRY_VERSION=2.5.1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 
 WORKDIR /app
 
@@ -13,9 +16,10 @@ RUN apt-get update && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /app/requirements.txt
+COPY pyproject.toml poetry.lock /app/
 RUN python -m pip install --upgrade pip setuptools wheel && \
-    python -m pip install --retries 10 --timeout 120 --progress-bar off -r /app/requirements.txt
+    python -m pip install --retries 10 --timeout 120 --progress-bar off "poetry==$POETRY_VERSION" && \
+    poetry install --only main --no-root --no-ansi
 
 COPY src /app/src
 COPY data /app/data
