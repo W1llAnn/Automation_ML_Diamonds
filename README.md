@@ -1,6 +1,9 @@
 # Automation ML Diamonds
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![Poetry](https://img.shields.io/badge/poetry-2.x-60A5FA)](https://python-poetry.org/)
+[![Ruff](https://img.shields.io/badge/linter-ruff-261230)](https://docs.astral.sh/ruff/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-FFAB70?logo=precommit&logoColor=white)](https://pre-commit.com/)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/tests-pytest-green)](https://docs.pytest.org/)
 [![Docker](https://img.shields.io/badge/docker-compose-blue)](https://docs.docker.com/compose/)
@@ -12,7 +15,7 @@ MLOps-проект для предсказания стоимости брилл
 
 Проект демонстрирует воспроизводимый ML workflow для табличной задачи регрессии: предсказание цены бриллианта (`price`) по данным Kaggle Diamonds Dataset.
 
-Основной акцент сделан на понятной архитектуре, стабильном локальном запуске, автоматизированных тестах, Docker, CI/CD, monitoring и прозрачной структуре репозитория.
+Основной акцент сделан на понятной архитектуре, production-инструментах (Poetry, ruff, mypy, pre-commit), стабильном локальном запуске, автоматизированных тестах, Docker, CI/CD, monitoring и прозрачной структуре репозитория.
 
 ## Бизнес-задача
 
@@ -34,7 +37,7 @@ MLOps-проект для предсказания стоимости брилл
 
 Датасет: [Kaggle Diamonds Dataset](https://www.kaggle.com/datasets/shivam2503/diamonds)
 
-Презентация - https://drive.google.com/file/d/1yhTzTyjb7gmj4y4bQLWzS0v7sFHl4q5n/view?usp=sharing 
+Презентация - https://drive.google.com/file/d/1yhTzTyjb7gmj4y4bQLWzS0v7sFHl4q5n/view?usp=sharing
 
 ## Почему выбран Diamonds Dataset
 
@@ -93,6 +96,9 @@ flowchart LR
   - degradation detection;
   - CPU/RAM/disk usage через `psutil`.
 - Тесты на небольших synthetic DataFrame, поэтому полный Kaggle dataset для проверки не нужен.
+- Управление зависимостями через Poetry (`pyproject.toml` + `poetry.lock`).
+- Линтеры и типизация: ruff (lint + format) и mypy, те же проверки работают в CI.
+- pre-commit хуки: автоматические проверки перед каждым коммитом.
 - Docker и Docker Compose.
 - GitHub Actions workflow для тестов и Docker build.
 
@@ -108,7 +114,8 @@ flowchart LR
 |   |-- data_processing.py
 |   |-- infrastructure_monitoring.py
 |   |-- model_training.py
-|   `-- monitoring.py
+|   |-- monitoring.py
+|   `-- visualization.py
 |-- tests/
 |   |-- test_api.py
 |   |-- test_data.py
@@ -124,32 +131,31 @@ flowchart LR
 |   |-- figures/
 |   `-- monitoring/
 |-- presentation/
-|   `-- presentation.md
 |-- run_pipeline.py
+|-- pyproject.toml        # зависимости, скрипты и настройки инструментов (Poetry, ruff, mypy, pytest)
+|-- poetry.lock           # зафиксированные версии зависимостей
+|-- poetry.toml           # локальная настройка Poetry: окружение создается в .venv внутри проекта
+|-- requirements.txt      # runtime-зависимости для Docker, сгенерированы из poetry.lock
+|-- .pre-commit-config.yaml
+|-- .gitattributes
 |-- docker-compose.yml
-|-- requirements.txt
 `-- README.md
 ```
 
 ## Быстрый старт
 
-Создать и активировать виртуальное окружение на Windows:
+Требуется Python 3.11+ и [Poetry](https://python-poetry.org/).
+
+Установить зависимости (Poetry создаст виртуальное окружение `.venv` внутри проекта):
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-Установить зависимости:
-
-```bash
-pip install -r requirements.txt
+poetry install
 ```
 
 Запустить полный ML pipeline:
 
 ```bash
-python run_pipeline.py
+poetry run python run_pipeline.py
 ```
 
 Ожидаемый вывод:
@@ -163,6 +169,72 @@ mape: 7.0597
 ```
 
 Если вместо sample dataset использовать полный Kaggle CSV, значения метрик могут измениться.
+
+### Альтернатива без Poetry
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python run_pipeline.py
+```
+
+## Виртуальное окружение
+
+Виртуальное окружение проекта живет в папке `.venv` внутри репозитория — это настроено в
+`poetry.toml` (`virtualenvs.in-project = true`), поэтому Poetry всегда создает окружение рядом
+с кодом, а не в глобальном кэше.
+
+Само окружение в git не коммитится (см. комментарий в `.gitignore`): это стандартная практика,
+потому что `.venv` содержит платформенно-зависимые бинарники и полностью восстанавливается из
+`poetry.lock` одной командой:
+
+```bash
+poetry install
+```
+
+Активация окружения (опционально, все команды ниже можно запускать и через `poetry run`):
+
+```bash
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+# Windows (Git Bash)
+source .venv/Scripts/activate
+# Linux / macOS
+source .venv/bin/activate
+```
+
+## pre-commit
+
+Хуки pre-commit автоматически проверяют код перед каждым коммитом: гигиена файлов
+(trailing whitespace, конец файла, валидность YAML/TOML/JSON), линтер ruff и типизация mypy.
+
+Установка хуков (один раз после клона репозитория):
+
+```bash
+poetry run pre-commit install
+```
+
+Ручная проверка всех файлов и обновление версий хуков:
+
+```bash
+poetry run pre-commit run --all-files
+poetry run pre-commit autoupdate
+```
+
+## Линтеры и типизация
+
+Проверки запускаются внутри окружения проекта:
+
+```bash
+poetry run ruff check .          # линтер
+poetry run ruff format --check . # проверка форматирования
+poetry run ruff format .         # автоформатирование
+poetry run mypy                  # проверка типов (src и run_pipeline.py)
+```
+
+Настройки инструментов (набор правил ruff, строгость mypy) живут в `pyproject.toml`,
+поэтому локальные проверки и CI используют одинаковые правила.
 
 ## Подготовка датасета
 
@@ -319,13 +391,13 @@ Endpoint-ы:
 Запуск всех тестов:
 
 ```bash
-pytest -v
+poetry run pytest -v
 ```
 
 Текущий ожидаемый результат:
 
 ```text
-18 passed
+19 passed
 ```
 
 Опциональная команда для coverage, если установлен `pytest-cov`:
@@ -383,21 +455,17 @@ GitHub Actions workflow находится здесь:
 .github/workflows/ci-cd.yml
 ```
 
-Workflow выполняет:
+Workflow выполняет три job-а:
 
-1. checkout репозитория;
-2. настройку Python;
-3. pip dependency cache;
-4. установку зависимостей;
-5. compile check для `src` и `tests`;
-6. `python -m pytest -v`;
-7. Docker image build.
+1. `lint` — установка зависимостей через Poetry, затем `ruff check`, `ruff format --check` и `mypy`;
+2. `test` — установка зависимостей через Poetry и `pytest -v`;
+3. `docker` — сборка Docker image (запускается только после успешных lint и test).
 
 Deploy, cloud integrations и secrets не добавлены специально: для проекта выбран простой и стабильный workflow без внешней инфраструктуры.
 
 ## Git workflow
 
-Для работы с репозиторием использовался стандартный Git workflow:
+Для работы с репозиторием используется стандартный Git workflow:
 
 ```bash
 git status
@@ -406,16 +474,37 @@ git commit -m "..."
 git push origin main
 ```
 
-Эти команды позволяют проверить состояние рабочей директории, добавить изменения, зафиксировать их в истории и отправить проект в GitHub-репозиторий.
+Если установлены pre-commit хуки (`poetry run pre-commit install`), то перед созданием коммита
+автоматически запускаются линтеры и проверки гигиены файлов, поэтому в репозиторий попадает
+только проверенный код.
+
+## Утилиты проекта
+
+После `poetry install` доступны консольные команды:
+
+- `poetry run diamonds-etl` — запустить ETL-pipeline;
+- `poetry run diamonds-train` — обучить модель;
+- `poetry run diamonds-figures` — построить графики отчета;
+- `poetry run diamonds-monitoring` — вывести infrastructure-метрики.
 
 ## Решение частых проблем
 
 ### `ModuleNotFoundError`
 
-Установить зависимости в активном окружении:
+Установить зависимости в окружение проекта:
 
 ```bash
-pip install -r requirements.txt
+poetry install
+```
+
+### requirements.txt и poetry.lock
+
+`requirements.txt` генерируется из `poetry.lock` и используется только для Docker-образа.
+После изменения зависимостей в `pyproject.toml` нужно пересобрать оба файла:
+
+```bash
+poetry lock
+poetry export -f requirements.txt --without-hashes --only main -o requirements.txt
 ```
 
 ### `/predict` возвращает HTTP 503
